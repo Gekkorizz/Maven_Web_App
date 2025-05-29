@@ -1,15 +1,31 @@
 ---
-- name: Deploy to Tomcat
+- name: Deploy WAR file to Tomcat server
   hosts: web
   become: yes
   tasks:
-    - name: Copy WAR file to Tomcat
+
+    - name: Ensure WAR file exists on control node
+      stat:
+        path: "/home/unified/WebApp/target/mvn_web_app.war"
+      register: war_file
+
+    - name: Fail if WAR file is missing
+      fail:
+        msg: "WAR file not found at /home/unified/WebApp/target/mvn_web_app.war"
+      when: not war_file.stat.exists
+
+    - name: Copy WAR file to Tomcat webapps directory
       copy:
-        src: "/var/snap/jenkins/4865/workspace/MyMavenWebAppWithAnsible-CICD/target/mvn_web_app.war
-        dest: "/opt/tomcat/webapps/MyMavenWebApp.war"
+        src: "/home/unified/WebApp/target/mvn_web_app.war"
+        dest: "/opt/tomcat/webapps/mvn_web_app.war"
+        owner: tomcat
+        group: tomcat
+        mode: '0644'
         remote_src: no
 
-    - name: Restart Tomcat
+    - name: Restart Tomcat service
       systemd:
         name: tomcat
         state: restarted
+        enabled: yes
+
